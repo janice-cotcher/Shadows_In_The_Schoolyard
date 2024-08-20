@@ -1,374 +1,300 @@
-import project
-from act_three import act_three
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
+from project import (
+    get_commands,
+    get_location,
+    get_room,
+    get_action,
+    get_rooms_for_location,
+    check_room_action,
+    check_lock,
+    typingPrint,
+    handle_retirement_manor,
+    handle_retirement_herring,
+    handle_restaurant,
+    handle_archdiocese,
+    handle_basement_visit,
+    handle_agency,
+    handle_maeve,
+    handle_theo,
+    handle_school,
+    handle_max,
+    handle_occult,
+    handle_palm,
+    handle_magic_box,
+    handle_library,
+    handle_theatre,
+    handle_mall,
+    handle_cemetery,
+    get_rooms_for_location,
+    handle_basement_visit,
+    initialize_act_three,
+    decoded,
+    print_csv
+)
+from map import Location, Room
+from inventory import Inventory
 
+@pytest.fixture
+def sample_location():
+    return Location("Test Location", [
+        Room("Test Location", "Room 1"),
+        Room("Test Location", "Room 2"),
+    ])
 
-class MockInventory:
-    def __init__(self, item, description=None):
-        self.item = item
-        self.description = description
-
-    def __str__(self):
-        return f"{self.item}"
-
-
-class MockRoom:
-    def __init__(
-        self,
-        location,
-        room,
-        person=None,
-        description=None,
-        text=None,
-        items=None,
-        item_description=None,
-    ):
-        self.location = location
-        self.room = room
-        self.person = person
-        self.description = description
-        self.items = items
-        self.text = text
-        self.item_description = item_description
-
-    def __str__(self):
-        if self.person and self.items:
-            return f"You are at {self.location} in the {self.room}. You see {self.person}, {self.description}. You also see {self.items}."
-        elif self.person and not self.items:
-            return f"You are at {self.location} in the {self.room}. You see {self.person}, {self.description}."
-        elif not self.person and self.items:
-            return (
-                f"You are at {self.location} in the {self.room}. You see {self.items}."
-            )
-        else:
-            return f"You are at {self.location} in the {self.room}. You see no one or no items of interest."
-
-
-def test_act_one_quit(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda _: "Quit Game")
-
-
-def test_act_one_factory(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda _: "Hawkins Factory")
-
-
-def test_act_one_school_journalism(monkeypatch):
-    inputs = iter(
-        [
-            "Hawkins Collegiate",
-            "Journalism Classroom",
-            "Question Mr. Sinclair",
-            "Leave Journalism Classroom",
-            "Leave Hawkins Collegiate",
-        ]
+@pytest.fixture
+def sample_room():
+    return Room(
+        "Test Location",
+        "Test Room",
+        "Test Person",
+        "Test Description",
+        "Test Text",
+        "Test Item",
+        "Test Item Description"
     )
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
+@pytest.fixture
+def sample_inventory():
+    return Inventory("Test Item", "Test Description")
 
-def test_act_one_police(monkeypatch):
-    inputs = iter(
-        [
-            "Hawkins Police Station",
-            "Front Reception",
-            "Question Officer Braydon Forry",
-            "Examine Missing posters",
-            "Leave Front Reception",
-            "Leave Hawkins Police Station",
-        ]
-    )
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+def test_get_commands():
+    with patch('builtins.input', return_value='2'):
+        assert get_commands("Test prompt", 3) == 2
 
+def test_get_commands_invalid_input():
+    with patch('builtins.input', side_effect=['a', '0', '4', '2']):
+        assert get_commands("Test prompt", 3) == 2
 
-def test_act_one_agency(monkeypatch):
-    inputs = iter(
-        [
-            "Malone's Detective Agency",
-            "Office",
-            "Examine a signal jammer",
-            "Check Inventory",
-            "Leave Office",
-            "Leave Malone's Detective Agency",
-        ]
-    )
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+def test_get_location(sample_location):
+    locations = [sample_location, "Quit Game"]
+    with patch('project.get_commands', return_value=1):
+        result = get_location(locations)
+        assert result == sample_location
 
+def test_get_room(sample_room):
+    rooms = [sample_room, "Leave Test Location"]
+    with patch('project.get_commands', return_value=1):
+        result = get_room(rooms)
+        assert result == sample_room
 
-def test_act_one_news(monkeypatch):
-    inputs = iter(
-        [
-            "Hawkins Daily News",
-            "Editor's Office",
-            "Question Sarah Bartlett",
-            "Leave Editor's Office",
-            "Leave Hawkins Daily News",
-            "Hawkins Factory",
-        ]
-    )
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+def test_get_action(sample_room):
+    with patch('project.get_commands', return_value=1):
+        result = get_action(sample_room)
+        assert result == f"Question {sample_room.person}"
 
+def test_check_room_action(sample_room, sample_inventory):
+    result = check_room_action(f"Question {sample_room.person}", sample_room, [sample_inventory], [])
+    assert result == False
 
-def test_act_two_factory_diary(monkeypatch):
-    with open("decoded.txt", "r") as file:
-        inputs = [
-            "Hawkins Daily News",
-            "Editor's Office",
-            "Question Sarah Bartlett",
-            "Leave Editor's Office",
-            "Leave Hawkins Daily News",
-            "Hawkins Factory",
-            "Rotting machinery",
-            "Examine a shiny lever on a rusted machine",
-            "Secret Room",
-            "Examine a diary",
-        ]
-        inputs.extend(file.readlines())
-        inputs = iter(inputs)
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+def test_check_lock():
+    cache = [{"item": "a lock pick kit", "description": "Test description"}]
+    assert check_lock(cache) == True
 
+def test_typingPrint(capsys):
+    typingPrint("Test message")
+    captured = capsys.readouterr()
+    assert captured.out == "Test message"
 
-def test_act_two(monkeypatch):
-    with open("decoded.txt", "r") as file:
-        inputs = [
-            "Malone's Detective Agency",
-            "Office",
-            "Examine a signal jammer",
-            "Leave Office",
-            "Supply Closet",
-            "Examine a lock pick kit",
-            "Leave Supply Closet",
-            "Leave Malone's Detective Agency",
-            "Hawkins Daily News",
-            "Editor's Office",
-            "Question Sarah Bartlett",
-            "Leave Editor's Office",
-            "Leave Hawkins Daily News",
-            "Hawkins Factory",
-            "Rotting machinery",
-            "Examine a shiny lever on a rusted machine",
-            "Secret Room",
-            "Examine a diary",
-        ]
-        inputs.extend(file.readlines())
-        inputs.extend(
-            [
-                "Leave Secret Room",
-                "Leave Hawkins Factory",
-                "Orpheum Theater",
-                "Theatre Basement",
-                "Examine a graffitied wall",
-                "Leave Theatre Basement",
-                "Leave Orpheum Theater",
-            ]
+def test_handle_retirement_manor():
+    room = Room("Trinity Manor", "Main Desk", "Phil Callahan", "security guard")
+    with patch('builtins.input', return_value="Zachariah Dowey"):
+        attempts_trinity, salt_bool, blessed_salt_bool, cache, new_room = handle_retirement_manor(
+            room, "Question Phil Callahan", 0, False, False, []
         )
-        inputs = iter(inputs)
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        assert attempts_trinity == 1
+        assert new_room is not None
+        assert new_room.room == "Zachariah Dowey's Bedroom"
+        assert new_room.person == "Zachariah Dowey"
+        assert new_room.description == "retired priest"
+
+def test_handle_retirement_herring():
+    location = Location("Hawkins Continuing-Care Community", [])
+    room = Room("Hawkins Continuing-Care Community", "Security Desk", "Laurence Tureaud", "security guard")
+    room.location = location  # Set the location attribute of the room
+
+    # Test when the correct name is provided
+    with patch('builtins.input', return_value="Sonny O'Sullivan"):
+        attempts_carehome = handle_retirement_herring(room, "Question Laurence Tureaud", 0)
+        assert attempts_carehome == 1
+        assert len(location.rooms) == 1
+        new_room = location.rooms[0]
+        assert new_room.room == "Sonny O'Sullivan's Bedroom"
+        assert new_room.person == "Sonny O'Sullivan"
+        assert new_room.description == "retired priest"
+        assert new_room.text == "Who are you? Bless your salt? Kids today and their strange fads."
+
+    # Test when an incorrect name is provided
+    with patch('builtins.input', return_value="Wrong Name"):
+        attempts_carehome = handle_retirement_herring(room, "Question Laurence Tureaud", 1)
+        assert attempts_carehome == 2
+        assert len(location.rooms) == 1  # No new room added
+
+    # Test when maximum attempts are reached
+    with patch('builtins.input', return_value="Wrong Name"):
+        attempts_carehome = handle_retirement_herring(room, "Question Laurence Tureaud", 2)
+        assert attempts_carehome == 3
+        assert room.text == "You obviously don't know anyone here, please leave."
+
+    # Additional test to ensure text is set only on the last attempt
+    room.text = None
+    with patch('builtins.input', return_value="Wrong Name"):
+        attempts_carehome = handle_retirement_herring(room, "Question Laurence Tureaud", 1)
+        assert attempts_carehome == 2
+        assert room.text is None  # Text should not be set yet
+
+    with patch('builtins.input', return_value="Wrong Name"):
+        attempts_carehome = handle_retirement_herring(room, "Question Laurence Tureaud", 2)
+        assert attempts_carehome == 3
+        assert room.text == "You obviously don't know anyone here, please leave."
 
 
-def test_act_three(monkeypatch):
-    with open("decoded.txt", "r") as file:
-        inputs = [
-            "Malone's Detective Agency",
-            "Office",
-            "Examine a signal jammer",
-            "Leave Office",
-            "Supply Closet",
-            "Examine a lock pick kit",
-            "Leave Supply Closet",
-            "Leave Malone's Detective Agency",
-            "Hawkins Daily News",
-            "Editor's Office",
-            "Question Sarah Bartlett",
-            "Leave Editor's Office",
-            "Leave Hawkins Daily News",
-            "Hawkins Factory",
-            "Rotting machinery",
-            "Examine a shiny lever on a rusted machine",
-            "Secret Room",
-            "Examine a diary",
-        ]
-        inputs.extend(file.readlines())
-        inputs.extend(
-            [
-                "Leave Secret Room",
-                "Leave Hawkins Factory",
-                "Orpheum Theater",
-                "Theatre Basement",
-                "Examine a graffitied wall",
-                "Leave Theatre Basement",
-                "Leave Orpheum Theater",
-                "Benny's Burgers",
-                "Diner Counter",
-                "Examine salt",
-                "Leave Diner Counter",
-                "Leave Benny's Burgers",
-                "St. Patrick's Parish Church",
-                "Cathedral's Basement",
-                "Question Ross MacGarry",
-                "Leave Cathedral's Basement",
-                "Leave St. Patrick's Parish Church",
-                "Archdiocese of Hawkins",
-                "Chancery",
-                "Question Very Rev. Sean Fitzgerald",
-                "Leave Chancery",
-                "Leave Archdiocese of Hawkins",
-                "Trinity Manor",
-                "Main Desk",
-                "Question Phil Callahan",
-                "Zachariah Dowey",
-                "Zachariah Dowey's Bedroom",
-                "Question Zachariah Dowey",
-                "Leave Zachariah Dowey's Bedroom",
-                "Leave Trinity Manor",
-                "Orpheum Theater",
-                "Theatre Basement",
-                "Examine a shattered amulet",
-                "Leave Theatre Basement",
-                "Leave Orpheum Theater",
-                "Hawkins Public Library",
-                "Local Maps",
-                "Examine a replica map of Hawkins from 1873",
-                "Leave Local Maps",
-                "Leave Hawkins Public Library",
-                "Whispering Pine Cemetery",
-                "A clearing in the middle of the cemetery",
-                "Examine Speakers from the School",
-                "Away Tsathoggua",
-            ]
+def test_handle_restaurant():
+    assert handle_restaurant("Examine salt", False) == True
+
+def test_handle_archdiocese(capsys):
+    with patch('project.print_csv') as mock_print_csv:
+        handle_archdiocese("Question Very Rev. Sean Fitzgerald")
+        mock_print_csv.assert_called_once_with("priests.csv")
+
+def test_handle_agency():
+    attempts_jack, money = handle_agency("Question Jack Malone", 0, 0)
+    assert attempts_jack == 1
+    assert money == 10
+
+def test_handle_maeve():
+    attempts_piggybank, money = handle_maeve("Examine Maeve's Piggybank", 0, 0)
+    assert attempts_piggybank == 1
+    assert money == 100
+
+def test_handle_theo():
+    room = Room("Theo's House", "Kitchen")
+    assert handle_theo(room, True) == False
+
+def test_handle_school():
+    room = Room("Hawkins Collegiate", "Music Room", text="Test text")
+    with patch('project.typingPrint') as mock_typing_print:
+        with patch('project.game_over') as mock_game_over:
+            handle_school(room)
+            mock_typing_print.assert_called_once_with("Test text")
+            mock_game_over.assert_called_once_with("You lose")
+
+def test_handle_max():
+    room = Room("Max's House", "Kitchen")
+    assert handle_max(room, True) == False
+
+def test_handle_occult():
+    with patch('builtins.input', return_value='y'):
+        money, cache = handle_occult("Examine The Amulet of the Yoth", 100, [])
+        assert money == 0
+        assert len(cache) == 1
+        assert cache[0]['item'] == "The Amulet of the Yoth"
+
+def test_handle_palm():
+    with patch('builtins.input', return_value='y'):
+        money = handle_palm("Question Mme. Avalonia", 60)
+        assert money == 0
+
+def test_handle_magic_box():
+    with patch('builtins.input', return_value='y'):
+        hours, attempts_giles, money, blessed_salt_bool, cache = handle_magic_box(
+            "Examine Books on Demons, Magic, and Supernatural Creatures",
+            10, 0, 100, False, []
         )
-        inputs = iter(inputs)
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        assert hours == 9
+        assert attempts_giles == 0
+        assert money == 100
+        assert blessed_salt_bool == False
+        assert len(cache) == 0
+
+def test_handle_library():
+    locations = []
+    handle_library("Examine a replica map of Hawkins from 1873", locations)
+    assert len(locations) == 1
+    assert locations[0].location == "Whispering Pine Cemetery"
+
+def test_handle_theatre():
+    cache, amulet_bool = handle_theatre("Examine a shattered amulet", [], False)
+    assert len(cache) == 1
+    assert cache[0]['item'] == "a shattered amulet"
+    assert amulet_bool == True
+
+def test_handle_mall():
+    with patch('builtins.input', return_value='y'):
+        money, cache, salt_bool = handle_mall("Examine salt", 10, [], False)
+        assert money == 8
+        assert len(cache) == 1
+        assert cache[0]['item'] == "salt"
+        assert salt_bool == True
+
+def test_handle_cemetery():
+    with pytest.raises(SystemExit):
+        handle_cemetery(False, True, [], True, True)
 
 
-def test_act_three_12_times(monkeypatch):
-    with open("decoded.txt", "r") as file:
-        inputs = [
-            "Malone's Detective Agency",
-            "Office",
-            "Examine a signal jammer",
-            "Leave Office",
-            "Supply Closet",
-            "Examine a lock pick kit",
-            "Leave Supply Closet",
-            "Leave Malone's Detective Agency",
-            "Hawkins Daily News",
-            "Editor's Office",
-            "Question Sarah Bartlett",
-            "Leave Editor's Office",
-            "Leave Hawkins Daily News",
-            "Hawkins Factory",
-            "Rotting machinery",
-            "Examine a shiny lever on a rusted machine",
-            "Secret Room",
-            "Examine a diary",
-        ]
-        inputs.extend(file.readlines())
-        inputs.extend(
-            [
-                "Leave Secret Room",
-                "Leave Hawkins Factory",
-                "Orpheum Theater",
-                "Theatre Basement",
-                "Examine a graffitied wall",
-                "Leave Theatre Basement",
-                "Leave Orpheum Theater",
-            ]
-        )
-        inputs.extend(["3", "2"] * 12)
-        inputs = iter(inputs)
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
-        with pytest.raises(SystemExit):
-            act_three(project.cache)
+def test_get_rooms_for_location():
+    location1 = Location("Location1", [Room("Location1", "Room1"), Room("Location1", "Room2")])
+    location2 = Location("Location2", [Room("Location2", "Room3")])
+    locations = [location1, location2, "Quit Game"]
 
+    rooms = get_rooms_for_location(location1, locations)
+    assert len(rooms) == 2
+    assert rooms[0].room == "Room1"
+    assert rooms[1].room == "Room2"
 
-def input_generator(test_input):
-    for line in test_input.splitlines():
-        yield line
-    raise EOFError
+    rooms = get_rooms_for_location("Location2", locations)
+    assert len(rooms) == 1
+    assert rooms[0].room == "Room3"
 
+    rooms = get_rooms_for_location("Quit Game", locations)
+    assert rooms == ["Quit Game"]
 
-def test_check_cipher_correct():
-    test_input = """Aol Vsk Dvvkz, Tpkupnoa
-- h wpljl vm h zohaalylk htbsla
-- h cphs vm zhsa islzzlk if h svjhs wyplza
-Johua: Hdhf Azhaovnnbh!"""
-    index = "Examine an old computer"
-    action_room = MockRoom(
-        "Hawkins Factory", "Manager's Office", items="an old computer"
-    )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        assert project.check_cipher(index, action_room) == True
+def test_handle_basement_visit(capsys):
+    handle_basement_visit()
+    captured = capsys.readouterr()
+    assert "Performing a reverse image search" in captured.out
 
+def test_initialize_act_three():
+    locations, items = initialize_act_three()
+    assert len(locations) > 0
+    assert all(isinstance(loc, Location) for loc in locations)
+    assert len(items) == 4
+    assert all(isinstance(item, Inventory) for item in items)
 
-def test_check_cipher_correct_print(capsys):
-    test_input = """Aol Vsk Dvvkz, Tpkupnoa
-- h wpljl vm h zohaalylk htbsla
-- h cphs vm zhsa islzzlk if h svjhs wyplza
-Johua: Hdhf Azhaovnnbh!"""
-    index = "Examine an old computer"
-    action_room = MockRoom(
-        "Hawkins Factory", "Manager's Office", items="an old computer"
-    )
+def test_get_rooms_for_location():
+    location1 = Location("Location1", [Room("Location1", "Room1"), Room("Location1", "Room2")])
+    location2 = Location("Location2", [Room("Location2", "Room3")])
+    locations = [location1, location2, "Quit Game"]
 
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        project.check_cipher(index, action_room)
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """Enter/Paste your content. Ctrl-D to save it.
+    rooms = get_rooms_for_location(location1, locations)
+    assert len(rooms) == 2
+    assert rooms[0].room == "Room1"
+    assert rooms[1].room == "Room2"
 
-The Old Woods, Midnight
-- a piece of a shattered amulet
-- a vial of salt blessed by a local priest
-Chant: Away Tsathoggua!
+    rooms = get_rooms_for_location("Location2", locations)
+    assert len(rooms) == 1
+    assert rooms[0].room == "Room3"
 
-"""
-        )
+    rooms = get_rooms_for_location("Quit Game", locations)
+    assert rooms == ["Quit Game"]
 
+def test_handle_basement_visit(capsys):
+    handle_basement_visit()
+    captured = capsys.readouterr()
+    assert "Performing a reverse image search" in captured.out
+    assert "Cthulhu mythos" in captured.out
+    assert "Tsathoggua's insatiable hunger for power" in captured.out
 
-def test_check_cipher_fail():
-    test_input = "test"
-    index = "Examine an old computer"
-    action_room = MockRoom(
-        "Hawkins Factory", "Manager's Office", items="an old computer"
-    )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        assert project.check_cipher(index, action_room) == False
-
-
-def test_check_cipher_fail_print(capsys):
-    test_input = "test"
-    index = "Examine an old computer"
-    action_room = MockRoom(
-        "Hawkins Factory", "Manager's Office", items="an old computer"
-    )
-
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        project.check_cipher(index, action_room)
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """Enter/Paste your content. Ctrl-D to save it.
-Input not recognize
-"""
-        )
-
+def test_initialize_act_three():
+    locations, items = initialize_act_three()
+    assert len(locations) > 0
+    assert all(isinstance(loc, Location) for loc in locations)
+    assert len(items) == 4
+    assert all(isinstance(item, Inventory) for item in items)
+    assert any(item.item == "a lock pick kit" for item in items)
+    assert any(item.item == "a signal jammer" for item in items)
+    assert any(item.item == "a shattered amulet" for item in items)
+    assert any(item.item == "salt" for item in items)
 
 def test_decoded_correct():
     test_input = """The Old Woods, Midnight
@@ -376,384 +302,48 @@ def test_decoded_correct():
 - a vial of salt blessed by a local priest
 Chant: Away Tsathoggua!"""
     index = "Examine a diary"
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
+    action_room = Room(
         "Hawkins Factory",
         "Secret Room",
-        items=diary.item,
-        item_description=diary.description,
+        items="a diary",
+        item_description="a diary with pages filled with strange writings",
     )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        assert project.decoded(index, action_room) == True
+    with patch('builtins.input', side_effect=[line for line in test_input.split('\n')] + [EOFError]):
+        assert decoded(index, action_room) == True
 
-
-def test_decoded_correct_print(capsys):
-    test_input = """The Old Woods, Midnight
-- a piece of a shattered amulet
-- a vial of salt blessed by a local priest
-Chant: Away Tsathoggua!"""
+def test_decoded_incorrect():
+    test_input = "This is not the correct decoded message"
     index = "Examine a diary"
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
+    action_room = Room(
         "Hawkins Factory",
         "Secret Room",
-        items=diary.item,
-        item_description=diary.description,
+        items="a diary",
+        item_description="a diary with pages filled with strange writings",
     )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        project.decoded(index, action_room)
+    with patch('builtins.input', side_effect=[test_input, EOFError]):
+        assert decoded(index, action_room) == False
+
+def test_print_csv(capsys):
+    mock_csv_content = """Name,Parish,Dates
+Louis Kinsella,Ascension,2012-
+Myles Barrett,Ascension,2008-2012
+Christian O'Reilly,Ascension,1999-2008"""
+    
+    with patch("builtins.open", mock_open(read_data=mock_csv_content)) as mock_file:
+        print_csv("priests.csv")
+    
         captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """What does the coded message say? Ctrl-D to save it.
+        expected_output = """Name                Parish     Dates
+------------------  ---------  ---------
+Louis Kinsella      Ascension  2012-
+Myles Barrett       Ascension  2008-2012
+Christian O'Reilly  Ascension  1999-2008"""
+    assert captured.out.strip() == expected_output.strip()
 
-Correct
-
-"""
-        )
-
-
-def test_decoded_fail():
-    test_input = "test"
-    index = "Examine a diary"
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=diary.item,
-        item_description=diary.description,
-    )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        assert project.decoded(index, action_room) == False
+def test_handle_archdiocese_prints_csv():
+    with patch('project.print_csv') as mock_print_csv:
+        handle_archdiocese("Question Very Rev. Sean Fitzgerald")
+        mock_print_csv.assert_called_once_with("priests.csv")
 
 
-def test_decoded_fail_print(capsys):
-    test_input = "test"
-    index = "Examine a diary"
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=diary.item,
-        item_description=diary.description,
-    )
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        project.decoded(index, action_room)
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """What does the coded message say? Ctrl-D to save it.
-Input not recognized
-"""
-        )
 
-
-def test_get_commands_pass():
-    message = "test"
-    length = 2
-    with patch("builtins.input", return_value="1"):
-        assert project.get_commands(message, length) == 1
-
-
-def test_get_commands_ValueError():
-    message = "test"
-    length = 2
-    with patch("builtins.input", side_effect=["a", "1"]):
-        result = project.get_commands(message, length)
-        assert result == 1
-
-
-def test_get_commands_outofrange():
-    message = "test"
-    length = 2
-    with patch("builtins.input", side_effect=["-1", "0", "4", "1"]):
-        result = project.get_commands(message, length)
-        assert result == 1
-
-
-def test_get_location():
-    locations = ["farm", "library", "train"]
-    input = "1"
-    with patch("builtins.input", return_value=input):
-        result = project.get_location(locations)
-        assert result == locations[int(input) - 1]
-
-
-def test_get_location_outofrange():
-    locations = ["farm", "library", "train"]
-    input = ["-1", "0", "1"]
-    with patch("builtins.input", side_effect=input):
-        result = project.get_location(locations)
-        assert result == locations[int(input[-1]) - 1]
-
-
-def test_get_location_ValueError():
-    locations = ["farm", "library", "train"]
-    input = ["a", "1"]
-    with patch("builtins.input", side_effect=input):
-        result = project.get_location(locations)
-        assert result == locations[int(input[-1]) - 1]
-
-
-def test_get_rooms():
-    secret = MockRoom("Hawkins Factory", "Secret Room")
-    rooms = [secret, "quit"]
-    input = "1"
-    with patch("builtins.input", return_value=input):
-        result = project.get_room(rooms)
-        assert result == rooms[int(input) - 1]
-
-
-def test_get_rooms_ValueError():
-    secret = MockRoom("Hawkins Factory", "Secret Room")
-    rooms = [secret, "quit"]
-    input = ["a", "1"]
-    with patch("builtins.input", side_effect=input):
-        result = project.get_room(rooms)
-        assert result == rooms[int(input[-1]) - 1]
-
-
-def test_get_rooms_outofrange():
-    secret = MockRoom("Hawkins Factory", "Secret Room")
-    rooms = [secret, "quit"]
-    input = ["-1", "0", "1"]
-    with patch("builtins.input", side_effect=input):
-        result = project.get_room(rooms)
-        assert result == rooms[int(input[-1]) - 1]
-
-
-def test_get_actions():
-    posters = MockInventory(
-        "Missing posters",
-        "The missing posters in the police station show that four teenagers from Hawkins have gone missing in the last month. Their names are Abed Nadir, Freya Day, Huan Li, and Grace Rosberg",
-    )
-    project.cache = [posters]
-    text_forry = "Yeah, I remember her. She wanted some information about some missing students from her school. I directed her to the Missing Posters."
-    action_room = MockRoom(
-        "Hawkins Police Station",
-        "Front Reception",
-        "Officer Braydon Forry",
-        "the desk sergeant",
-        text_forry,
-        posters.item,
-        posters.description,
-    )
-    input = "1"
-    with patch("builtins.input", return_value=input):
-        result = project.get_action(action_room)
-        assert result == f"Question {action_room.person}"
-
-
-def test_get_actions_inventory():
-    original_cache = project.cache
-
-    posters = MockInventory(
-        "Missing posters",
-        "The missing posters in the police station show that four teenagers from Hawkins have gone missing in the last month. Their names are Abed Nadir, Freya Day, Huan Li, and Grace Rosberg",
-    )
-    project.cache = [posters]
-    text_forry = "Yeah, I remember her. She wanted some information about some missing students from her school. I directed her to the Missing Posters."
-    action_room = MockRoom(
-        "Hawkins Police Station",
-        "Front Reception",
-        "Officer Braydon Forry",
-        "the desk sergeant",
-        text_forry,
-        posters.item,
-        posters.description,
-    )
-    input = 4
-    with patch("project.get_commands", return_value=input):
-        result = project.get_action(action_room)
-        print(result)
-        assert result == "Check Inventory"
-    project.cache = original_cache
-
-
-def test_check_room_action_question():
-    posters = MockInventory(
-        "Missing posters",
-        "The missing posters in the police station show that four teenagers from Hawkins have gone missing in the last month. Their names are Abed Nadir, Freya Day, Huan Li, and Grace Rosberg",
-    )
-    items = [posters]
-    text_forry = "Yeah, I remember her. She wanted some information about some missing students from her school. I directed her to the Missing Posters."
-    action_room = MockRoom(
-        "Hawkins Police Station",
-        "Front Reception",
-        "Officer Braydon Forry",
-        "the desk sergeant",
-        text_forry,
-        posters.item,
-        posters.description,
-    )
-    index = f"Question {action_room.person}"
-    result = project.check_room_action(index, action_room, items)
-    assert result == False
-
-
-def test_check_room_action_question_print(capsys):
-    posters = MockInventory(
-        "Missing posters",
-        "The missing posters in the police station show that four teenagers from Hawkins have gone missing in the last month. Their names are Abed Nadir, Freya Day, Huan Li, and Grace Rosberg",
-    )
-    items = [posters]
-    text_forry = "Yeah, I remember her. She wanted some information about some missing students from her school. I directed her to the Missing Posters."
-    action_room = MockRoom(
-        "Hawkins Police Station",
-        "Front Reception",
-        "Officer Braydon Forry",
-        "the desk sergeant",
-        text_forry,
-        posters.item,
-        posters.description,
-    )
-    index = f"Question {action_room.person}"
-    project.check_room_action(index, action_room, items)
-    captured = capsys.readouterr()
-    # print('captured output:', captured.out)
-    # print('captured errors:', captured.err)
-    assert (
-        captured.out
-        == "Yeah, I remember her. She wanted some information about some missing students from her school. I directed her to the Missing Posters.\n\n"
-    )
-
-
-def test_check_room_action_exam_diary():
-    test_input = """The Old Woods, Midnight
-- a piece of a shattered amulet
-- a vial of salt blessed by a local priest
-Chant: Away Tsathoggua!"""
-    index = "Examine a diary"
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=diary.item,
-        item_description=diary.description,
-    )
-    items = [diary]
-    with patch(
-        "builtins.input",
-        return_value=test_input,
-        side_effect=input_generator(test_input),
-    ):
-        assert project.check_room_action(index, action_room, items) == False
-
-
-def test_check_room_action_exam_add_item():
-    temp_cache = project.cache
-    test = MockInventory("a test", "test description")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=test.item,
-        item_description=test.description,
-    )
-    index = f"Examine {action_room.items}"
-    items = [test]
-    project.cache = []
-    assert project.check_room_action(index, action_room, items) == (
-        {"description": "test description", "item": "a test"},
-        False,
-    )
-    project.cache = temp_cache
-
-
-def test_check_room_action_exam_add_item():
-    project.cache = []
-    temp_cache = project.cache
-    test = MockInventory("a test", "test description")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=test.item,
-        item_description=test.description,
-    )
-    index = f"Examine {action_room.items}"
-    items = [test]
-    project.cache.append({"item": "a test", "description": "test description"})
-    assert project.check_room_action(index, action_room, items) == False
-    project.cache = temp_cache
-
-
-def test_check_room_action_inventory_print(capsys):
-    project.cache = []
-    temp_cache = project.cache
-    test = MockInventory("a test", "test description")
-    diary = MockInventory("a diary", "a diary with pages filled with strange writings")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=test.item,
-        item_description=test.description,
-    )
-    index = f"Check Inventory"
-    items = [test, diary]
-    project.cache.append({"item": "a test", "description": "test description"})
-    project.cache.append(
-        {
-            "item": "a diary",
-            "description": "a diary with pages filled with strange writings",
-        }
-    )
-    project.check_room_action(index, action_room, items)
-    captured = capsys.readouterr()
-    assert (
-        captured.out
-        == """Inventory:
-a test: test description
-a diary: a diary with pages filled with strange writings
-
-"""
-    )
-    project.cache = temp_cache
-
-
-def test_check_room_action_inventory():
-    project.cache = []
-    temp_cache = project.cache
-    test = MockInventory("a test", "test description")
-    action_room = MockRoom(
-        "Hawkins Factory",
-        "Secret Room",
-        items=test.item,
-        item_description=test.description,
-    )
-    index = f"Check Inventory"
-    items = [test]
-    project.cache.append({"item": "a test", "description": "test description"})
-    assert project.check_room_action(index, action_room, items) == False
-    project.cache = temp_cache
-
-
-def test_check_lock_false():
-    project.cache = []
-    temp_cache = project.cache
-    assert project.check_lock() == False
-    project.cache = temp_cache
-
-
-def test_check_lock_true():
-    project.cache = []
-    temp_cache = project.cache
-    project.cache.append(
-        {"item": "a lock pick kit", "description": "Tools to unlock a locked door"}
-    )
-    assert project.check_lock() == True
-    project.cache = temp_cache
