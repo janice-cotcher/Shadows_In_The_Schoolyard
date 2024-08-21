@@ -1,11 +1,12 @@
 from typing import List, Optional
 
+
 class Location:
     """
     Represents a location in the game world.
     """
 
-    def __init__(self, location: str, rooms: Optional[List['Room']] = None):
+    def __init__(self, location: str, rooms: Optional[List["Room"]] = None):
         """
         Initialize a Location object.
 
@@ -76,6 +77,8 @@ class Room:
         elif self.person and not self.items:
             return f"You are at {self.location} in the {self.room}. You see {self.person}, {self.description}."
         elif not self.person and self.items:
-            return f"You are at {self.location} in the {self.room}. You see {self.items}."
+            return (
+                f"You are at {self.location} in the {self.room}. You see {self.items}."
+            )
         else:
             return f"You are at {self.location} in the {self.room}. You see no one or no items of interest."

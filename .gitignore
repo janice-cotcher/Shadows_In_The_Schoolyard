@@ -1,0 +1,10 @@
+
+/.venv/bin
+/.venv/lib/python3.12/site-packages/__pycache__
+/.venv/lib/python3.12/site-packages/_pytest
+/.venv/lib/python3.12/site-packages/iniconfig-2.0.0.dist-info
+/.venv/lib/python3.12/site-packages/iniconfig
+/.venv/lib/python3.12/site-packages/packaging-24.1.dist-info
+/.venv/lib/python3.12/site-packages/packaging
+/.venv
+/__pycache__

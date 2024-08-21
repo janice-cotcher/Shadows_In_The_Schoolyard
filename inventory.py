@@ -1,5 +1,6 @@
 from typing import Optional
 
+
 class Inventory:
     """
     Represents an item in the game that can be collected and used by the player.
@@ -15,6 +16,12 @@ class Inventory:
         """
         self.item = item
         self.description = description
+    
+    def __eq__(self, value: object) -> bool:
+        if isinstance(value, Inventory):
+            return self.item == value.item and self.description == value.description
+        else:
+            return False
 
     def __str__(self) -> str:
         """
@@ -32,13 +39,11 @@ class Inventory:
         Returns:
             dict: A dictionary representation of the Inventory object.
         """
-        return {
-            "item": self.item,
-            "description": self.description
-        }
+        return {"item": self.item, "description": self.description}
+    
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'Inventory':
+    def from_dict(cls, data: dict) -> "Inventory":
         """
         Create an Inventory object from a dictionary.
 
@@ -48,7 +53,7 @@ class Inventory:
         Returns:
             Inventory: An Inventory object created from the dictionary data.
         """
-        return cls(data['item'], data.get('description'))
+        return cls(data["item"], data.get("description"))
 
     def examine(self) -> str:
         """
